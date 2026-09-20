@@ -27,7 +27,7 @@ def connect():
         notes TEXT NOT NULL DEFAULT '', imported_at TEXT NOT NULL,
         UNIQUE(source, permit_id))''')
     existing = {row['name'] for row in db.execute('PRAGMA table_info(permits)')}
-    for field in ('opportunity_stage', *REVIEW_FIELDS):
+    for field in ('opportunity_stage', 'source_contractor', *REVIEW_FIELDS):
         if field not in existing:
             # Field names are fixed constants, never user input.
             db.execute(f"ALTER TABLE permits ADD COLUMN {field} TEXT NOT NULL DEFAULT '{'unverified' if field == 'opportunity_stage' else ''}'")

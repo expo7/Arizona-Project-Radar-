@@ -14,6 +14,14 @@ Requires Python 3.11+. Run `python server.py` and open <http://127.0.0.1:8000>. 
 
 The desk shows 25 permits per page, newest first. Search and filters apply to all loaded records; changing a filter returns to page one. The overall counts remain totals across all records.
 
+## Investigating early Phoenix leads
+
+The separate Phoenix Project Leads task watches **City of Phoenix plan-review and issued-permit records** for potentially early commercial or industrial work. Its workflow checks a plan number against later building and trade permits, the same parcel and address, and any named general contractor before calling a lead actionable. `TO BE BID` is a prioritization clue, **not proof** that a bid is open. Freshness matters; an old plan or a later named GC is generally a poor early lead.
+
+The review panel now records a plan number, parcel, owner, named GC, later permits/trades, suggested first contact, and evidence notes. You can manually mark a record `TO BE BID · verified` only after adding a plan number or later-permit evidence; other stages are `Unverified`, `GC named`, `Trade work progressed`, and `Closed / stale`. Filter the list by opportunity stage. These fields persist across imports and feed syncs. A blank contractor field in the Maricopa feed means **unknown**, not an unassigned job.
+
+The existing automated feed is **Maricopa County's issued-permit snapshot**, not the City of Phoenix PDD plan-review source. This app does not yet ingest the Phoenix plan-review records or run successor checks automatically. For manual cross-checks, use the [Phoenix plan-review search](https://apps-secure.phoenix.gov/PDD/Search/PlanReviews), [issued-permit search](https://apps-secure.phoenix.gov/PDD/Search/IssuedPermit), and [permit-history search](https://apps-secure.phoenix.gov/pdd/search/permits). Keep the separate task active for daily discovery and alerts.
+
 ## Import format
 
 The CSV header is `source,permit_id,description,address,city,county,issued_date,permit_type,value,source_url`. All columns are required, but values other than `source`, `permit_id`, and `description` may be blank. Dates use `YYYY-MM-DD`. Use stable source names and permit IDs: imports skip matching pairs and preserve existing review state. The import is atomic and capped at 10,000 records and 5 MB. The UI offers an empty template.

@@ -22,6 +22,12 @@ The review panel now records a plan number, parcel, owner, named GC, later permi
 
 The existing automated feed is **Maricopa County's issued-permit snapshot**, not the City of Phoenix PDD plan-review source. This app does not yet ingest the Phoenix plan-review records or run successor checks automatically. For manual cross-checks, use the [Phoenix plan-review search](https://apps-secure.phoenix.gov/PDD/Search/PlanReviews), [issued-permit search](https://apps-secure.phoenix.gov/PDD/Search/IssuedPermit), and [permit-history search](https://apps-secure.phoenix.gov/pdd/search/permits). Keep the separate task active for daily discovery and alerts.
 
+### Import Phoenix's issued-permit export
+
+The [City of Phoenix issued-permit search](https://apps-secure.phoenix.gov/PDD/Search/IssuedPermit) provides a **Create File** CSV export. Choose a bounded date range there and download the file. From this project folder run `python import_phoenix.py /path/to/download.csv`, then refresh Radar. The command accepts the city's search-criteria line above the CSV header, and maps permit number, issue date, address, parcel, plan number, owner, contractor, and valuation. It fills empty investigation fields but never replaces review entries you have already written. Reimporting the same permit preserves its status and notes.
+
+This is a manual export/import, not an unattended City of Phoenix feed. The importer has been checked against the city's published column names and a representative CSV fixture; it has not yet been verified against a downloaded Phoenix export. A contractor value in an issued-permit export is a reported field, not proof that procurement for all site services is closed. Plan reviews and later permit links still need to be checked before assigning an opportunity stage.
+
 ## Import format
 
 The CSV header is `source,permit_id,description,address,city,county,issued_date,permit_type,value,source_url`. All columns are required, but values other than `source`, `permit_id`, and `description` may be blank. Dates use `YYYY-MM-DD`. Use stable source names and permit IDs: imports skip matching pairs and preserve existing review state. The import is atomic and capped at 10,000 records and 5 MB. The UI offers an empty template.

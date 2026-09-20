@@ -12,6 +12,8 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get('RADAR_DB', ROOT / 'radar.sqlite3'))
 FIELDS = ('source', 'permit_id', 'description', 'address', 'city', 'county', 'issued_date', 'permit_type', 'value', 'source_url')
+STAGES = ('unverified', 'to_be_bid', 'gc_named', 'progressed', 'closed')
+REVIEW_FIELDS = ('plan_number', 'parcel', 'owner', 'named_gc', 'related_permits', 'next_contact')
 
 
 def connect():
@@ -24,6 +26,11 @@ def connect():
         value TEXT NOT NULL, source_url TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'new',
         notes TEXT NOT NULL DEFAULT '', imported_at TEXT NOT NULL,
         UNIQUE(source, permit_id))''')
+    existing = {row['name'] for row in db.execute('PRAGMA table_info(permits)')}
+    for field in ('opportunity_stage', *REVIEW_FIELDS):
+        if field not in existing:
+            # Field names are fixed constants, never user input.
+            db.execute(f"ALTER TABLE permits ADD COLUMN {field} TEXT NOT NULL DEFAULT '{'unverified' if field == 'opportunity_stage' else ''}'")
     return db
 
 
@@ -108,7 +115,20 @@ class Handler(BaseHTTPRequestHandler):
                 if status not in ('new', 'reviewing', 'qualified', 'dismissed') or not isinstance(notes, str) or len(notes) > 2000:
                     raise ValueError('Invalid status or notes')
                 with connect() as db:
-                    result = db.execute('UPDATE permits SET status=?, notes=? WHERE id=?', (status, notes, record_id))
+                    previous = db.execute('SELECT * FROM permits WHERE id=?', (record_id,)).fetchone()
+                    if previous is None:
+                        return self.send_json(404, {'saved': False})
+                    stage = data.get('opportunity_stage', previous['opportunity_stage'])
+                    if stage not in STAGES:
+                        raise ValueError('Invalid opportunity stage')
+                    details = {field: data.get(field, previous[field]) for field in REVIEW_FIELDS}
+                    if any(not isinstance(value, str) or len(value) > 500 for value in details.values()):
+                        raise ValueError('Investigation fields must be text under 500 characters')
+                    if stage == 'to_be_bid' and not (details['plan_number'] or details['related_permits']):
+                        raise ValueError('Add a plan number or linked permit evidence before marking TO BE BID')
+                    result = db.execute('''UPDATE permits SET status=?, notes=?, opportunity_stage=?,
+                        plan_number=?, parcel=?, owner=?, named_gc=?, related_permits=?, next_contact=? WHERE id=?''',
+                        (status, notes, stage, *(details[field] for field in REVIEW_FIELDS), record_id))
                 return self.send_json(200 if result.rowcount else 404, {'saved': bool(result.rowcount)})
             return self.send_error(404)
         except (ValueError, KeyError, json.JSONDecodeError) as error:

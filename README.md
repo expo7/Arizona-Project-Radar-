@@ -12,6 +12,8 @@ The feed covers Maricopa County's published layer, not all Arizona jurisdictions
 
 Requires Python 3.11+. Run `python server.py` and open <http://127.0.0.1:8000>. Data is stored in `radar.sqlite3` in the project directory; override with `RADAR_DB=/path/to/file.sqlite3`.
 
+The desk shows 25 permits per page, newest first. Search and filters apply to all loaded records; changing a filter returns to page one. The overall counts remain totals across all records.
+
 ## Import format
 
 The CSV header is `source,permit_id,description,address,city,county,issued_date,permit_type,value,source_url`. All columns are required, but values other than `source`, `permit_id`, and `description` may be blank. Dates use `YYYY-MM-DD`. Use stable source names and permit IDs: imports skip matching pairs and preserve existing review state. The import is atomic and capped at 10,000 records and 5 MB. The UI offers an empty template.
